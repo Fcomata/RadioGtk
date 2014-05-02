@@ -436,6 +436,8 @@ void set_song_index(){
 			
 			play_song_index=a;
 		}
+
+		a=a+1;
 	}
 
 }
