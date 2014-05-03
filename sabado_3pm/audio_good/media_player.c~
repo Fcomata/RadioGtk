@@ -1,0 +1,82 @@
+#include <gst/gst.h>
+#include <string.h>
+
+/****************************************************************************
+*       call back                                                           *
+****************************************************************************/
+static void bus_call(GstBus *bus, GstMessage *msg, GMainLoop *mainloop )
+{
+    switch (GST_MESSAGE_TYPE (msg)) {
+    case GST_MESSAGE_EOS:
+        g_print("EOS\n");
+        g_main_loop_quit(mainloop);
+        break;
+    case GST_MESSAGE_ERROR:{
+        gchar *debug;
+        GError *error;
+        gst_message_parse_error(msg, &error, &debug);
+        g_free(debug);
+        g_printerr("Error: %s\n", error->message);
+        g_error_free(error);
+        break;
+    }
+    case GST_MESSAGE_WARNING:{
+        gchar *debug;
+        GError *error;
+        gst_message_parse_warning(msg, &error, &debug);
+        g_printerr("WARNING: %s (%s)\n", error->message, (debug) ? debug : "no details");
+        g_error_free(error);
+        g_free(debug);
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+/****************************************************************************
+*       main                                                                *
+****************************************************************************/
+int main( int argc, char *argv[] )
+{
+    GstElement *playbin;
+    GstElement *pipeline;
+    GMainLoop *loop;
+    GstBus *bus;
+
+char*select_song = "Eternity.mp3";
+
+		char* name =  selected_song;
+		char* play = "file:///home/nano/Desktop/test_music/";
+		char* name_with_extension;
+		name_with_extension = malloc(strlen(name)+1+strlen(play)); 
+		strcpy(name_with_extension, play); /* copy name into the new var */
+		strcat(name_with_extension, name); /* add the extension */
+
+    gst_init(&argc, &argv);
+    pipeline = gst_pipeline_new( NULL );
+
+    /* Create gstreamer elements */
+    playbin = gst_element_factory_make( "playbin2", NULL );
+    gst_bin_add( GST_BIN(pipeline), playbin );
+    g_object_set( G_OBJECT(playbin), "uri", name_with_extension, NULL );
+
+    /* bus callbacks */
+    loop = g_main_loop_new( NULL, FALSE );
+    bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline) );
+    gst_bus_add_watch( bus, (GstBusFunc)bus_call, loop );
+    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+
+    g_print("g_main_loop_run start \n");
+
+    /* Iterate */
+    g_main_loop_run(loop);
+
+    g_print("g_main_loop_run end \n");
+
+    /* Out of the main loop, clean up nicely */
+    gst_element_set_state( pipeline, GST_STATE_NULL );
+    gst_object_unref( GST_OBJECT(pipeline) );
+
+    return 0;
+}
